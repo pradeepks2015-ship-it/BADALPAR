@@ -747,12 +747,13 @@ function renderListWith(data){
       "</div>"+
       "<div class='cc-info'>"+
         (x.lastPaidAmt&&x.lastPaidAmt!="0"?
-          "<span style='color:#7986cb;'>📅 पिछला: ₹"+Number(x.lastPaidAmt).toLocaleString("hi-IN")+
+          "<span style='color:#7986cb;'>📅 पिछला भुगतान: ₹"+Number(x.lastPaidAmt).toLocaleString("hi-IN")+
           (x.lastPayDate?" ("+esc(x.lastPayDate)+")":"")+"</span>":"")+
         (x.paydate?"<span style='color:var(--green);margin-left:8px;'>💰 वसूल: "+esc(x.paydate)+"</span>":"")+
       "</div>"+
       (x.remarks?"<div class='cc-rem'>💬 "+esc(x.remarks)+"</div>":"")+
       (x.updatedBy?"<div class='cc-updby'>🔄 "+esc(x.updatedBy)+"</div>":"")+
+      (x.uploadedAt?"<div class='cc-updby' style='color:#4a6080;'>📤 अपलोड: "+esc(x.uploadedAt)+"</div>":"")+
     "</div>";
   }).join("");
 }
