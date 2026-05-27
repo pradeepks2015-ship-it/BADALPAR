@@ -251,7 +251,7 @@ body{font-family:"Noto Sans Devanagari",sans-serif;background:var(--bg);color:va
       <div class="sel-wrap">
         <select id="hq-sel" class="f-select">
           <option value="">-- HQ चुनें --</option>
-          <option>ग्वारी</option>
+          <option>बेलपेठ</option>
           <option>जोगीवाडा</option>
           <option>विजयपनी</option>
           <option>थावरजोड़ी</option>
@@ -414,7 +414,7 @@ body{font-family:"Noto Sans Devanagari",sans-serif;background:var(--bg);color:va
 
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-var HQS  = ["ग्वारी","जोगीवाडा","विजयपनी","थावरजोड़ी","बादलपार"];
+var HQS  = ["बेलपेठ","जोगीवाडा","विजयपनी","थावरजोड़ी","बादलपार"];
 var CATS = ["घरेलू","व्यवसाय","कृषि","गवर्नमेंट","इंडस्ट्रियल"];
 var CICO = ["🏠","🏪","🌾","🏛️","🏭"];
 var ROW_LIMIT = 500;   // <── max records per upload
@@ -1045,7 +1045,7 @@ function downloadPDF(){
 // ─── TEMPLATE DOWNLOAD ────────────────────────────────────────────────────────
 function dlTemplate(){
   var s="Consumer No,Consumer Name,Net Bill,Mobile No,Address,Remark,Tariff,Load,Unit,Last Payment Date,Last Paid Amt\n"+
-        "1234567890,राम लाल,5400,9876543210,ग्वारी,,घरेलू,1KW,1.00KW,15/03/2025,2500\n"+
+        "1234567890,राम लाल,5400,9876543210,बेलपेठ,,घरेलू,1KW,1.00KW,15/03/2025,2500\n"+
         "9876543210,श्याम कुमार,3200,9123456780,बादलपार,,व्यवसाय,2KW,2.00KW,20/02/2025,1500\n";
   var a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob(["\uFEFF"+s],{type:"text/csv;charset=utf-8;"}));
