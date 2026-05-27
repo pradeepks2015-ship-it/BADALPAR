@@ -201,6 +201,11 @@ body{font-family:"Noto Sans Devanagari",sans-serif;background:var(--bg);color:va
 .rmk-name{font-family:"Baloo 2",cursive;font-size:15px;font-weight:700;margin-bottom:3px;}
 .rmk-amt{font-size:13px;color:var(--gold);font-weight:700;}
 
+.rmk-prev-box{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:8px 10px;max-height:120px;overflow-y:auto;}
+.rmk-prev-item{font-size:11px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--border);line-height:1.4;}
+.rmk-prev-item:last-child{border-bottom:none;}
+.rmk-prev-meta{font-size:9px;color:var(--muted);margin-top:2px;}
+
 /* TOAST */
 .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card);border:1px solid var(--border);border-radius:11px;padding:11px 18px;font-size:12px;font-weight:600;color:var(--text);z-index:999;white-space:nowrap;box-shadow:0 8px 28px rgba(0,0,0,.4);transition:transform .3s,opacity .3s;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
@@ -332,16 +337,16 @@ body{font-family:"Noto Sans Devanagari",sans-serif;background:var(--bg);color:va
       <b>&#128187; Computer:</b> Click करें या Drag &amp; Drop<br>
       <b>&#128241; Mobile:</b> Files/Downloads से select करें<br>
       <b>जरूरी columns:</b> Consumer No, Consumer Name, Net Bill<br>
-      <b>अधिकतम:</b> 500 records प्रति HQ/Category
+      <b>अधिकतम:</b> 500 records प्रति HQ/Category &nbsp;|&nbsp; <span id="up-existing-info" style="color:var(--gold2);"></span>
     </div>
     <button class="tmpl-btn" onclick="dlTemplate()">&#11015; Template CSV डाउनलोड करें</button>
     <div class="up-sel2">
       <div class="fg" style="margin:0;"><label>HQ *</label>
-        <div class="sel-wrap" style="margin:0;"><select class="fs" id="up-hq"></select></div>
+        <div class="sel-wrap" style="margin:0;"><select class="fs" id="up-hq" onchange="updUpExistingInfo()"></select></div>
       </div>
       <div class="fg" style="margin:0;"><label>Category *</label>
         <div class="sel-wrap" style="margin:0;">
-          <select class="fs" id="up-cat">
+          <select class="fs" id="up-cat" onchange="updUpExistingInfo()">
             <option value="">-- चुनें --</option>
             <option>घरेलू</option><option>व्यवसाय</option><option>कृषि</option>
             <option>गवर्नमेंट</option><option>इंडस्ट्रियल</option>
@@ -400,11 +405,12 @@ body{font-family:"Noto Sans Devanagari",sans-serif;background:var(--bg);color:va
       <label>भुगतान तिथि</label>
       <input type="date" class="fi" id="rmk-paydate">
     </div>
-    <div class="fg" id="rmk-history-grp" style="display:none;">
-      <label>पिछले रिमार्क <span id="rmk-history-count" style="color:var(--muted);font-weight:400;"></span></label>
-      <div id="rmk-history-list" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 10px;max-height:110px;overflow-y:auto;margin-bottom:0;"></div>
+    <div class="fg" id="rmk-prev-grp" style="display:none;">
+      <label id="rmk-prev-label">पिछले रिमार्क</label>
+      <div id="rmk-prev-list" class="rmk-prev-box"></div>
     </div>
-    <div class="fg"><label>नया रिमार्क / टिप्पणी <span id="rmk-limit-warn" style="color:var(--red);font-size:10px;"></span></label>
+    <div class="fg">
+      <label>नया रिमार्क जोड़ें</label>
       <textarea class="fta" id="rmk-text" placeholder="जैसे: घर पर नहीं मिले..."></textarea>
     </div>
     <div class="mfooter">
@@ -755,16 +761,15 @@ function renderListWith(data){
           (x.lastPayDate?" ("+esc(x.lastPayDate)+")":"")+"</span>":"")+
         (x.paydate?"<span style='color:var(--green);margin-left:8px;'>💰 वसूल: "+esc(x.paydate)+"</span>":"")+
       "</div>"+
-      (x.remarks&&x.remarks.length?
-        (Array.isArray(x.remarks)?x.remarks:[x.remarks]).map(function(r,ri){
-          return "<div class='cc-rem'>💬 <span style='color:#5a7090;font-size:9px;'>["+
-            (ri+1)+"]</span> "+esc(typeof r==='object'?r.text:r)+
-            (typeof r==='object'&&r.by?"<span style='font-size:9px;color:#3a5070;'> — "+esc(r.by)+"</span>":"")+
-            (typeof r==='object'&&r.at?"<span style='font-size:9px;color:#2a4060;'> "+esc(r.at)+"</span>":"")+
-            "</div>";
-        }).join(""):"")+
-      (x.updatedBy?"<div class='cc-updby'>🔄 "+esc(x.updatedBy)+"</div>":"")+
-      (x.uploadedAt?"<div class='cc-updby' style='color:#4a6080;'>📤 अपलोड: "+esc(x.uploadedAt)+"</div>":"")+
+      (function(){
+        var arr=Array.isArray(x.remarksArr)?x.remarksArr:(x.remarks?[{txt:x.remarks,by:x.updatedBy||"",at:""}]:[]);
+        if(!arr.length) return "";
+        return "<div class='cc-rem'>"+arr.slice().reverse().map(function(r,i){
+          return "💬 "+esc(r.txt||r.text||r)+(r.by?"<span style='font-size:9px;color:var(--muted);'> — "+esc(r.by)+(r.at?" • "+esc(r.at):"")+"</span>":"");
+        }).join("<br>")+"</div>";
+      })()+
+      (x.updatedBy?"<div class='cc-updby'>🔄 अपडेट: "+esc(x.updatedBy)+(x.updatedAt?" • "+esc(x.updatedAt):"")+"</div>":"")+
+      (x.uploadedAt&&!x.updatedBy?"<div class='cc-updby'>📤 अपलोड: "+esc(x.uploadedBy||"")+" • "+esc(x.uploadedAt)+"</div>":"")+
     "</div>";
   }).join("");
 }
@@ -804,30 +809,26 @@ function openRmkModal(idx){
   document.getElementById("rmk-name").textContent=x.name;
   document.getElementById("rmk-amt").textContent="₹"+Number(x.amount).toLocaleString("hi-IN")+" बकाया";
   document.getElementById("rmk-acc").textContent="Consumer No: "+x.acc;
-  // remarks array support
-  var rmkArr=x.remarks?(Array.isArray(x.remarks)?x.remarks:[{text:x.remarks,by:"",at:""}]):[];
-  var histGrp=document.getElementById("rmk-history-grp");
-  var histList=document.getElementById("rmk-history-list");
-  var limitWarn=document.getElementById("rmk-limit-warn");
-  document.getElementById("rmk-history-count").textContent="("+rmkArr.length+"/4)";
-  if(rmkArr.length>0){
-    histGrp.style.display="block";
-    histList.innerHTML=rmkArr.map(function(r,i){
-      var t=typeof r==="object"?r.text:r;
-      var by=typeof r==="object"&&r.by?r.by:"";
-      var at=typeof r==="object"&&r.at?r.at:"";
-      return "<div style='font-size:11px;padding:4px 0;border-bottom:1px solid var(--border);color:var(--text);'>"
-        +"<span style='color:#5a7090;font-size:9px;'>["+( i+1)+"] </span>"+
-        (t||"-")+
-        (by?"<span style='color:#4a6080;font-size:9px;'> — "+by+"</span>":"")+
-        (at?"<div style='color:#3a5070;font-size:9px;'>"+at+"</div>":"")+
-        "</div>";
+  document.getElementById("rmk-text").value=""; // हमेशा खाली — नया लिखने के लिए
+
+  // पुराने remarks दिखाएं
+  var arr = Array.isArray(x.remarksArr) ? x.remarksArr
+            : (x.remarks ? [{txt:x.remarks, by:x.updatedBy||"", at:x.updatedAt||""}] : []);
+  var grp = document.getElementById("rmk-prev-grp");
+  var lst = document.getElementById("rmk-prev-list");
+  var lbl = document.getElementById("rmk-prev-label");
+  if(arr.length){
+    grp.style.display="block";
+    lbl.textContent="पिछले रिमार्क ("+arr.length+")";
+    lst.innerHTML = arr.slice().reverse().map(function(r){
+      return "<div class='rmk-prev-item'>💬 "+esc(r.txt||r.text||r)+
+        "<div class='rmk-prev-meta'>"+(r.by?"👤 "+esc(r.by):"")+(r.at?" &nbsp;🕐 "+esc(r.at):"")+"</div></div>";
     }).join("");
-  } else { histGrp.style.display="none"; histList.innerHTML=""; }
-  if(rmkArr.length>=4){
-    limitWarn.textContent="(अधिकतम 4 सेव हो चुके — नया जोड़ने पर सबसे पुराना हटेगा)";
-  } else { limitWarn.textContent=""; }
-  document.getElementById("rmk-text").value="";
+  } else {
+    grp.style.display="none";
+    lst.innerHTML="";
+  }
+
   document.getElementById("rmk-paydate").value=x.paydate||"";
   setRmkStatus(x.status||"pending");
   document.getElementById("rmk-overlay").classList.add("open");
@@ -846,22 +847,29 @@ function saveRmk(){
   var idx=parseInt(document.getElementById("rmk-key").value);
   var d=cGet(activeHQ,activeCat);
   if(!d[idx])return;
-  d[idx].status=rmkStatus;
-  var newText=document.getElementById("rmk-text").value.trim();
-  if(newText){
-    var existArr=d[idx].remarks?(Array.isArray(d[idx].remarks)?d[idx].remarks:[{text:d[idx].remarks,by:"",at:""}]):[];
-    existArr.push({text:newText,by:CU.name,at:new Date().toLocaleString("hi-IN")});
-    if(existArr.length>4) existArr=existArr.slice(existArr.length-4); // FIFO: max 4
-    d[idx].remarks=existArr;
+  var newTxt=document.getElementById("rmk-text").value.trim();
+
+  // पुराना single remarks → array में migrate करें
+  var arr = Array.isArray(d[idx].remarksArr) ? d[idx].remarksArr.slice()
+            : (d[idx].remarks ? [{txt:d[idx].remarks, by:d[idx].updatedBy||"", at:d[idx].updatedAt||""}] : []);
+
+  // नया रिमार्क जोड़ें (अगर कुछ लिखा हो)
+  if(newTxt){
+    arr.push({txt:newTxt, by:CU.name, at:new Date().toLocaleString("hi-IN")});
   }
+
+  d[idx].remarksArr = arr;
+  d[idx].remarks    = arr.length ? arr[arr.length-1].txt : ""; // latest (backward compat)
+  d[idx].status     = rmkStatus;
   if(rmkStatus==="paid")
     d[idx].paydate=document.getElementById("rmk-paydate").value||new Date().toLocaleDateString("hi-IN");
-  d[idx].updatedBy=CU.name;
-  d[idx].updatedAt=new Date().toLocaleString("hi-IN");
+  d[idx].updatedBy  = CU.name;
+  d[idx].updatedAt  = new Date().toLocaleString("hi-IN");
+
   cSet(activeHQ,activeCat,d);
   closeRmkModal();
   renderSummaryWith(d); renderListWith(d);
-  toast("✅ रिमार्क सेव!","ok");
+  toast(newTxt?"✅ रिमार्क सेव! (कुल "+arr.length+")":"✅ स्थिति अपडेट!","ok");
   fbSet(activeHQ,activeCat,d,null);
 }
 
@@ -881,8 +889,25 @@ function openUpModal(){
   document.getElementById("up-preview").style.display="none";
   document.getElementById("btn-up-ok").disabled=true;
   document.getElementById("btn-up-ok").style.opacity=".5";
-  setUpMode("replace");
+  setUpMode("merge");
+  updUpExistingInfo();
   document.getElementById("up-overlay").classList.add("open");
+}
+
+function updUpExistingInfo(){
+  var hq=document.getElementById("up-hq")?document.getElementById("up-hq").value:activeHQ;
+  var cat=document.getElementById("up-cat")?document.getElementById("up-cat").value:activeCat;
+  var ex=cGet(hq,cat);
+  var el=document.getElementById("up-existing-info");
+  if(!el)return;
+  var rem=ROW_LIMIT-ex.length;
+  if(ex.length>0){
+    el.textContent="✅ मौजूद: "+ex.length+" | बाकी जगह: "+rem;
+    el.style.color=rem<=0?"var(--red)":rem<100?"var(--orange)":"var(--gold2)";
+  } else {
+    el.textContent="खाली ("+ROW_LIMIT+" तक जोड़ें)";
+    el.style.color="var(--muted)";
+  }
 }
 function closeUpModal(){document.getElementById("up-overlay").classList.remove("open");}
 function closeUpOutside(e){if(e.target===document.getElementById("up-overlay"))closeUpModal();}
@@ -891,6 +916,22 @@ function setUpMode(m){
   upMode=m;
   document.getElementById("mode-rep").className="topt"+(m==="replace"?" sel-pending":"");
   document.getElementById("mode-mrg").className="topt"+(m==="merge"?" sel-blue":"");
+  updUpExistingInfo();
+  // re-render warn if preview already shown
+  if(parsedRows.length&&document.getElementById("up-preview").style.display!=="none"){
+    var wb=document.getElementById("up-warn");
+    var warnParts=[];
+    if(m==="merge"){
+      var hq=document.getElementById("up-hq").value||activeHQ;
+      var cat=document.getElementById("up-cat").value||activeCat;
+      var ex=cGet(hq,cat);
+      var rem=ROW_LIMIT-ex.length;
+      if(rem<=0) warnParts.push("⛔ लिमिट भरी है ("+ex.length+"/"+ROW_LIMIT+") — Replace mode use करें");
+      else warnParts.push("📋 मौजूद: "+ex.length+" | बाकी जगह: "+rem+" | इस फ़ाइल में: "+parsedRows.length);
+    }
+    wb.style.display=warnParts.length?"block":"none";
+    wb.textContent=warnParts.length?"ℹ️ "+warnParts.join(" | "):"";
+  }
 }
 function dOver(e){e.preventDefault();document.getElementById("up-zone").classList.add("drag");}
 function dLeave(){document.getElementById("up-zone").classList.remove("drag");}
@@ -959,10 +1000,19 @@ function processRows(rows){
   document.getElementById("up-preview").style.display="block";
   var wb=document.getElementById("up-warn");
   var warnParts=[];
-  if(errors.length) warnParts.push(errors.length+" rows skip (अधूरा डेटा, rows: "+errors.slice(0,5).join(",")+")");
-  if(trimmed) warnParts.push("केवल पहले "+ROW_LIMIT+" records लिए गए (limit: "+ROW_LIMIT+")");
+  if(errors.length) warnParts.push(errors.length+" rows skip (अधूरा डेटा)");
+  if(trimmed) warnParts.push("केवल पहले "+ROW_LIMIT+" records लिए गए");
+  // Show merge info
+  if(upMode==="merge"){
+    var hq=document.getElementById("up-hq").value||activeHQ;
+    var cat=document.getElementById("up-cat").value||activeCat;
+    var ex=cGet(hq,cat);
+    var rem=ROW_LIMIT-ex.length;
+    if(rem<=0) warnParts.push("⛔ लिमिट भरी है ("+ex.length+"/"+ROW_LIMIT+") — Replace mode use करें");
+    else warnParts.push("📋 मौजूद: "+ex.length+" | बाकी जगह: "+rem+" | इस फ़ाइल में: "+parsedRows.length);
+  }
   wb.style.display=warnParts.length?"block":"none";
-  wb.textContent=warnParts.length?"⚠️ "+warnParts.join(" | "):"";
+  wb.textContent=warnParts.length?"ℹ️ "+warnParts.join(" | "):"";
 
   document.getElementById("prev-title").textContent="पूर्वावलोकन ("+parsedRows.length+" records)";
   document.getElementById("prev-rows").innerHTML=parsedRows.slice(0,5).map(function(r,i){
@@ -985,6 +1035,7 @@ function confirmUpload(){
   if(!hq){toast("HQ चुनें","err");return;}
   if(!cat){toast("Category चुनें","err");return;}
   if(!parsedRows.length){toast("कोई valid डेटा नहीं","err");return;}
+
   var doSave=function(arr){
     cSet(hq,cat,arr);
     activeHQ=hq; activeCat=cat;
@@ -992,22 +1043,29 @@ function confirmUpload(){
     renderSummaryWith(arr); renderListWith(arr);
     startListen(activeHQ,activeCat);
     closeUpModal();
-    toast("✅ "+arr.length+" records अपलोड! 🔥","ok");
+    toast("✅ "+arr.length+" records सेव! 🔥","ok");
     fbSet(hq,cat,arr,null);
   };
+
   if(upMode==="replace"){
     doSave(parsedRows);
   } else {
+    // MERGE — टुकड़ों में अपलोड: existing preserve, नए जोड़े, 500 limit
     var ex=cGet(hq,cat);
     var merged=ex.slice();
+    var added=0, skippedDup=0, skippedLimit=0;
     parsedRows.forEach(function(r){
-      if(!merged.find(function(e){return e.acc===r.acc;})) merged.push(r);
+      if(merged.length>=ROW_LIMIT){skippedLimit++;return;}
+      if(merged.find(function(e){return e.acc===r.acc;})){skippedDup++;return;}
+      merged.push(r);
+      added++;
     });
-    if(merged.length>ROW_LIMIT){
-      toast("⚠️ Merge के बाद "+merged.length+" records हैं, limit "+ROW_LIMIT+" तक क्लिप किया","inf");
-      merged=merged.slice(0,ROW_LIMIT);
-    }
+    var msg="✅ "+added+" नए जोड़े";
+    if(skippedDup) msg+=" | "+skippedDup+" duplicate skip";
+    if(skippedLimit) msg+=" | "+skippedLimit+" limit पर रुके";
+    msg+=" | कुल: "+merged.length+"/"+ROW_LIMIT;
     doSave(merged);
+    setTimeout(function(){toast(msg,"ok");},300);
   }
 }
 
