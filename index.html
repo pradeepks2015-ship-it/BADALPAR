@@ -400,7 +400,11 @@ body{font-family:"Noto Sans Devanagari",sans-serif;background:var(--bg);color:va
       <label>भुगतान तिथि</label>
       <input type="date" class="fi" id="rmk-paydate">
     </div>
-    <div class="fg"><label>रिमार्क / टिप्पणी</label>
+    <div class="fg" id="rmk-history-grp" style="display:none;">
+      <label>पिछले रिमार्क <span id="rmk-history-count" style="color:var(--muted);font-weight:400;"></span></label>
+      <div id="rmk-history-list" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 10px;max-height:110px;overflow-y:auto;margin-bottom:0;"></div>
+    </div>
+    <div class="fg"><label>नया रिमार्क / टिप्पणी <span id="rmk-limit-warn" style="color:var(--red);font-size:10px;"></span></label>
       <textarea class="fta" id="rmk-text" placeholder="जैसे: घर पर नहीं मिले..."></textarea>
     </div>
     <div class="mfooter">
@@ -751,7 +755,14 @@ function renderListWith(data){
           (x.lastPayDate?" ("+esc(x.lastPayDate)+")":"")+"</span>":"")+
         (x.paydate?"<span style='color:var(--green);margin-left:8px;'>💰 वसूल: "+esc(x.paydate)+"</span>":"")+
       "</div>"+
-      (x.remarks?"<div class='cc-rem'>💬 "+esc(x.remarks)+"</div>":"")+
+      (x.remarks&&x.remarks.length?
+        (Array.isArray(x.remarks)?x.remarks:[x.remarks]).map(function(r,ri){
+          return "<div class='cc-rem'>💬 <span style='color:#5a7090;font-size:9px;'>["+
+            (ri+1)+"]</span> "+esc(typeof r==='object'?r.text:r)+
+            (typeof r==='object'&&r.by?"<span style='font-size:9px;color:#3a5070;'> — "+esc(r.by)+"</span>":"")+
+            (typeof r==='object'&&r.at?"<span style='font-size:9px;color:#2a4060;'> "+esc(r.at)+"</span>":"")+
+            "</div>";
+        }).join(""):"")+
       (x.updatedBy?"<div class='cc-updby'>🔄 "+esc(x.updatedBy)+"</div>":"")+
       (x.uploadedAt?"<div class='cc-updby' style='color:#4a6080;'>📤 अपलोड: "+esc(x.uploadedAt)+"</div>":"")+
     "</div>";
@@ -793,7 +804,30 @@ function openRmkModal(idx){
   document.getElementById("rmk-name").textContent=x.name;
   document.getElementById("rmk-amt").textContent="₹"+Number(x.amount).toLocaleString("hi-IN")+" बकाया";
   document.getElementById("rmk-acc").textContent="Consumer No: "+x.acc;
-  document.getElementById("rmk-text").value=x.remarks||"";
+  // remarks array support
+  var rmkArr=x.remarks?(Array.isArray(x.remarks)?x.remarks:[{text:x.remarks,by:"",at:""}]):[];
+  var histGrp=document.getElementById("rmk-history-grp");
+  var histList=document.getElementById("rmk-history-list");
+  var limitWarn=document.getElementById("rmk-limit-warn");
+  document.getElementById("rmk-history-count").textContent="("+rmkArr.length+"/4)";
+  if(rmkArr.length>0){
+    histGrp.style.display="block";
+    histList.innerHTML=rmkArr.map(function(r,i){
+      var t=typeof r==="object"?r.text:r;
+      var by=typeof r==="object"&&r.by?r.by:"";
+      var at=typeof r==="object"&&r.at?r.at:"";
+      return "<div style='font-size:11px;padding:4px 0;border-bottom:1px solid var(--border);color:var(--text);'>"
+        +"<span style='color:#5a7090;font-size:9px;'>["+( i+1)+"] </span>"+
+        (t||"-")+
+        (by?"<span style='color:#4a6080;font-size:9px;'> — "+by+"</span>":"")+
+        (at?"<div style='color:#3a5070;font-size:9px;'>"+at+"</div>":"")+
+        "</div>";
+    }).join("");
+  } else { histGrp.style.display="none"; histList.innerHTML=""; }
+  if(rmkArr.length>=4){
+    limitWarn.textContent="(अधिकतम 4 सेव हो चुके — नया जोड़ने पर सबसे पुराना हटेगा)";
+  } else { limitWarn.textContent=""; }
+  document.getElementById("rmk-text").value="";
   document.getElementById("rmk-paydate").value=x.paydate||"";
   setRmkStatus(x.status||"pending");
   document.getElementById("rmk-overlay").classList.add("open");
@@ -813,7 +847,13 @@ function saveRmk(){
   var d=cGet(activeHQ,activeCat);
   if(!d[idx])return;
   d[idx].status=rmkStatus;
-  d[idx].remarks=document.getElementById("rmk-text").value.trim();
+  var newText=document.getElementById("rmk-text").value.trim();
+  if(newText){
+    var existArr=d[idx].remarks?(Array.isArray(d[idx].remarks)?d[idx].remarks:[{text:d[idx].remarks,by:"",at:""}]):[];
+    existArr.push({text:newText,by:CU.name,at:new Date().toLocaleString("hi-IN")});
+    if(existArr.length>4) existArr=existArr.slice(existArr.length-4); // FIFO: max 4
+    d[idx].remarks=existArr;
+  }
   if(rmkStatus==="paid")
     d[idx].paydate=document.getElementById("rmk-paydate").value||new Date().toLocaleDateString("hi-IN");
   d[idx].updatedBy=CU.name;
